@@ -14,7 +14,7 @@
 
 使用 FreeRTOS API 时，以下规则适用：
 
-1. 不以 `FromISR` 结尾的 API 函数不得用于中断服务程序（ISR）。 一些 FreeRTOS 端口会进一步限制，即使以 `FromISR` 结尾的 API 函数也不能用于中断服务例程，该例程的（硬件）优先级高于 `configMAX_SYSCALL_INTERRUPT_PRIORITY` （或 `configMAX_API_CALL_INTERRUPT_PRIORITY` ，具体取决于端口）内核设置的优先级配置常量，在本文档的第 7.1 节中描述。 第二个限制是确保优先级高于 `configMAX_SYSCALL_INTERRUPT_PRIORITY` 设置的中断的时序，确定性和延迟不受 FreeRTOS 的影响。
+1. 不以 `FromISR` 结尾的 API 函数不得用于中断服务程序（ISR）。 一些 FreeRTOS 移植会进一步限制，即使以 `FromISR` 结尾的 API 函数也不能用于中断服务例程，该例程的（硬件）优先级高于 `configMAX_SYSCALL_INTERRUPT_PRIORITY` （或 `configMAX_API_CALL_INTERRUPT_PRIORITY` ，具体取决于端口）内核设置的优先级配置常量，在本文档的第 7.1 节中描述。 第二个限制是确保优先级高于 `configMAX_SYSCALL_INTERRUPT_PRIORITY` 设置的中断的时序，确定性和延迟不受 FreeRTOS 的影响。
 2. 在调度程序挂起时，不得调用可能导致上下文切换的 API 函数。
 3. 不得在临界区域内调用可能导致上下文切换的 API 函数。
 
