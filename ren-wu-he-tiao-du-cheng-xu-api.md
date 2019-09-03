@@ -306,3 +306,201 @@ running task. */
 
 清单9. `xTaskCallApplicationTaskHook()` 使用示例
 
+## xTaskCheckForTimeOut\(\)
+
+```c
+#include "FreeRTOS.h"
+#include "task.h"
+BaseType_t xTaskCheckForTimeOut( TimeOut_t * const pxTimeOut, 
+                                 TickType_t * const pxTicksToWait );
+```
+
+清单10. `xTaskCheckForTimeOut()` 函数原型
+
+### 概述
+
+本函数仅供高级用户使用。
+
+任务可以进入阻塞状态来等待一个事件。通常， 任务不会由于无限期的等待而处于阻塞状态，会指定超时期限。如果超时期限在任务等待事件发生之前到期，则任务将会从阻塞状态中移除。
+
+如果任务在等待事件发生时不止一次的进入和退出阻塞状态，则每次进入阻塞状态时使用的超时必须进行调整，以确保在阻塞状态下花费的总时间不超过最初指定的超时时间。一般使用 `xTaskCheckForTimeOut()` 执行调整，考虑到偶然发生的事件，例如 Tick 计数器溢出，否则手动调整很容易出错。
+
+### 参数
+
+| 参数 | 描述 |
+| :--- | :--- |
+| pxTimeOut | 一个指向结构体的指针，该结构体包含确定是否发生超时所必须的信息。使用 `vTaskSetTimeOutState()` 初始化 `pxTimeOut` 。 |
+| pxTicksToWait | 用于传递调整过后的阻塞时间，这是在考虑已经在阻塞状态下花费的时间之后剩余的阻塞时间。 |
+| 返回值 | 若返回 `pdTRUE` ，则无剩余阻塞时间，并且发生超时。若返回 `pdFALSE` ，则还有剩余的阻塞时间，所以不发生超时。  |
+
+### 例子
+
+```c
+/* Driver library function used to receive uxWantedBytes from an Rx buffer that is filled 
+by a UART interrupt.  If there are not enough bytes in the Rx buffer then the task enters 
+the Blocked state until it is notified that more data has been placed into the buffer.  If 
+there is still not enough data then the task re-enters the Blocked state, and 
+xTaskCheckForTimeOut() is used to re-calculate the Block time to ensure the total amount 
+of time spent in the Blocked state does not exceed MAX_TIME_TO_WAIT. This continues until 
+either the buffer contains at least uxWantedBytes bytes, or the total amount of time spent 
+in the Blocked state reaches MAX_TIME_TO_WAIT – at which point the task reads however many 
+bytes are available up to a maximum of uxWantedBytes.*/
+size_t xUART_Receive(uint8_t *pucBuffer, size_t uxWantedBytes )
+{
+    size_t uxReceived = 0;
+    TickType_t xTicksToWait = MAX_TIME_TO_WAIT;
+    TimeOut_t xTimeOut;
+    
+    /* Initialize xTimeOut.  This records the time at which this function was entered. */
+    vTaskSetTimeOutState( &xTimeOut );
+    
+    /* Loop until the buffer contains the wanted number of bytes, or a timeout occurs. */
+    while( UART_bytes_in_rx_buffer( pxUARTInstance ) < uxWantedBytes )
+    {
+        /* The buffer didn’t contain enough data so this task is going to enter the Blocked 
+        state.  Adjusting xTicksToWait to account for any time that has been spent in the 
+        Blocked state within this function so far to ensure the total amount of time spent 
+        in the Blocked state does not exceed MAX_TIME_TO_WAIT. */
+        if( xTaskCheckForTimeOut( &xTimeOut, &xTicksToWait ) != pdFALSE )
+        {
+            /* Timed out before the wanted number of bytes were available, exit the loop. */
+            break;
+        }
+        
+        /* Wait for a maximum of xTicksToWait ticks to be notified that the receive 
+        interrupt has placed more data intothe buffer. */
+        ulTaskNotifyTake( pdTRUE, xTicksToWait );
+    }
+    
+    /* Attempt to read uxWantedBytes from the receive buffer into pucBuffer.  The actual 
+    number of bytes read (which might be less than uxWantedBytes) is returned. */
+    uxReceived = UART_read_from_receive_buffer( pxUARTInstance, pucBuffer, uxWantedBytes );
+    
+    return uxReceived;
+}
+```
+
+清单11. `vTaskSetTimeOutState()` 与 `xTaskCheckForTimeOut()` 的使用示例
+
+## xTaskCreate\(\)
+
+```c
+#include "FreeRTOS.h"
+#include "task.h"
+BaseType_t xTaskCreate( TaskFunction_tpvTaskCode, 
+                        const char* const pcName, 
+                        unsigned shortusStackDepth, 
+                        void *pvParameters, 
+                        UBaseType_t uxPriority, 
+                        TaskHandle_t *pxCreatedTask);
+```
+
+清单 12. `xTaskCreate()` 函数原型
+
+### 概述
+
+创建一个新的任务实例。
+
+每个任务都与要用于保存任务状态的 RAM（任务控制块或 TCB），并被任务用作于堆。如果任务由 `xTaskCreate()` 创建，它所需的 RAM 从 FreeRTOS 栈中自动分配。如果任务由 `xTaskCreateStatic()` 创建，那么它所需的 RAM 应由应用编写者提供，这会产生两个额外的函数参数，但允许在编译时静态分配 RAM。
+
+新创建的任务最初处于 “就绪” 状态，但如果没有能够运行的优先级较高的任务，则会立即成为 “运行状态” 任务。
+
+可以在启动调度程序之前和之后创建任务。
+
+### 参数
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align:left">&#x53C2;&#x6570;</th>
+      <th style="text-align:left">&#x63CF;&#x8FF0;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align:left">pvTaskCode</td>
+      <td style="text-align:left">&#x4EFB;&#x52A1;&#x53EA;&#x662F;&#x4ECE;&#x4E0D;&#x9000;&#x51FA;&#x7684;
+        C &#x51FD;&#x6570;&#xFF0C;&#x6240;&#x4EE5;&#x901A;&#x5E38;&#x5B9E;&#x73B0;&#x4E3A;&#x4E00;&#x4E2A;&#x65E0;&#x9650;&#x7684;&#x5FAA;&#x73AF;&#x3002;<code>pvTaskCode</code> &#x53C2;&#x6570;&#x53EA;&#x662F;&#x4E00;&#x4E2A;&#x51FD;&#x6570;&#x6307;&#x9488;&#xFF0C;&#x6307;&#x5411;&#x5B9E;&#x73B0;&#x4EFB;&#x52A1;&#x7684;&#x51FD;&#x6570;&#xFF08;&#x5B9E;&#x9645;&#x4E0A;&#x662F;&#x4E2A;&#x51FD;&#x6570;&#x540D;&#xFF09;&#x3002;</td>
+    </tr>
+    <tr>
+      <td style="text-align:left">pcName</td>
+      <td style="text-align:left">
+        <p>&#x4EFB;&#x52A1;&#x7684;&#x63CF;&#x8FF0;&#x6027;&#x540D;&#x79F0;&#x3002;&#x8FD9;&#x4E3B;&#x8981;&#x7528;&#x4E8E;&#x8C03;&#x8BD5;&#x65B9;&#x4FBF;&#xFF0C;&#x4F46;&#x4E5F;&#x53EF;&#x7528;&#x6765;&#x8C03;&#x7528; <code>xTaskGetHandle()</code> &#x4EE5;&#x83B7;&#x53D6;&#x4EFB;&#x52A1;&#x7684;&#x53E5;&#x67C4;&#x3002;</p>
+        <p>&#x5E94;&#x7528;&#x7A0B;&#x5E8F;&#x5B9A;&#x4E49;&#x7684;&#x5E38;&#x91CF; <code>configMAX_TASK_NAME_LEN</code> &#x4EE5;&#x5B57;&#x7B26;&#x5B9A;&#x4E49;&#x540D;&#x79F0;&#x7684;&#x6700;&#x5927;&#x957F;&#x5EA6;&#xFF0C;&#x5305;&#x62EC; <code>NULL</code> &#x7EC8;&#x6B62;&#x7B26;&#x3002;
+          &#x63D0;&#x4F9B;&#x957F;&#x4E8E;&#x6B64;&#x6700;&#x5927;&#x503C;&#x7684;&#x5B57;&#x7B26;&#x4E32;&#x5C06;&#x5BFC;&#x81F4;&#x5B57;&#x7B26;&#x4E32;&#x88AB;&#x9759;&#x9ED8;&#x622A;&#x65AD;&#x3002;</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="text-align:left">usStackDepth</td>
+      <td style="text-align:left">
+        <p>&#x6BCF;&#x4E2A;&#x4EFB;&#x52A1;&#x90FD;&#x6709;&#x81EA;&#x5DF1;&#x552F;&#x4E00;&#x7684;&#x5806;&#xFF0C;&#x5728;&#x521B;&#x5EFA;&#x4EFB;&#x52A1;&#x65F6;&#x7531;&#x5185;&#x6838;&#x5206;&#x914D;&#x7ED9;&#x4EFB;&#x52A1;&#x3002; <code>usStackDepth</code> &#x503C;&#x544A;&#x8BC9;&#x5185;&#x6838;&#x5806;&#x6808;&#x7684;&#x5927;&#x5C0F;&#x3002;</p>
+        <p>&#x8BE5;&#x503C;&#x6307;&#x5B9A;&#x5806;&#x6808;&#x53EF;&#x4EE5;&#x5BB9;&#x7EB3;&#x7684;&#x5B57;&#x6570;&#xFF0C;&#x800C;&#x4E0D;&#x662F;&#x5B57;&#x8282;&#x6570;&#x3002;
+          &#x4F8B;&#x5982;&#xFF0C;&#x5728;&#x5177;&#x6709; 4 &#x5B57;&#x8282;&#x5806;&#x6808;&#x5BBD;&#x5EA6;&#x7684;&#x4F53;&#x7CFB;&#x7ED3;&#x6784;&#x4E0A;&#xFF0C;&#x5982;&#x679C;&#x5C06; <code>usStackDepth</code> &#x4F5C;&#x4E3A;
+          100 &#x4F20;&#x5165;&#xFF0C;&#x5219;&#x5C06;&#x5206;&#x914D; 400 &#x5B57;&#x8282;&#x7684;&#x5806;&#x6808;&#x7A7A;&#x95F4;&#xFF08;100
+          * 4 &#x5B57;&#x8282;&#xFF09;&#x3002; &#x5806;&#x6808;&#x6DF1;&#x5EA6;&#x4E58;&#x4EE5;&#x5806;&#x6808;&#x5BBD;&#x5EA6;&#x4E0D;&#x5F97;&#x8D85;&#x8FC7; <code>size_t</code> &#x7C7B;&#x578B;&#x7684;&#x53D8;&#x91CF;&#x4E2D;&#x53EF;&#x5305;&#x542B;&#x7684;&#x6700;&#x5927;&#x503C;&#x3002;</p>
+        <p>&#x7A7A;&#x95F2;&#x4EFB;&#x52A1;&#x4F7F;&#x7528;&#x7684;&#x5806;&#x6808;&#x5927;&#x5C0F;&#x7531;&#x5E94;&#x7528;&#x7A0B;&#x5E8F;&#x5B9A;&#x4E49;&#x7684;&#x5E38;&#x91CF; <code>configMINIMAL_STACK_SIZE</code> &#x5B9A;&#x4E49;&#x3002;
+          &#x4E3A;&#x6240;&#x9009;&#x62E9;&#x7684;&#x5FAE;&#x63A7;&#x5236;&#x5668;&#x67B6;&#x6784;&#x63D0;&#x4F9B;&#x7684;&#x6F14;&#x793A;&#x5E94;&#x7528;&#x7A0B;&#x5E8F;&#x4E2D;&#x4E3A;&#x6B64;&#x5E38;&#x91CF;&#x5206;&#x914D;&#x7684;&#x503C;&#x662F;&#x8BE5;&#x67B6;&#x6784;&#x4E2D;&#x4EFB;&#x4F55;&#x4EFB;&#x52A1;&#x7684;&#x6700;&#x4F4E;&#x5EFA;&#x8BAE;&#x503C;&#x3002;
+          &#x5982;&#x679C;&#x60A8;&#x7684;&#x4EFB;&#x52A1;&#x4F7F;&#x7528;&#x5927;&#x91CF;&#x5806;&#x6808;&#x7A7A;&#x95F4;&#xFF0C;&#x5219;&#x5FC5;&#x987B;&#x5206;&#x914D;&#x66F4;&#x5927;&#x7684;&#x503C;&#x3002;</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="text-align:left">pvParameters</td>
+      <td style="text-align:left">
+        <p>&#x4EFB;&#x52A1;&#x51FD;&#x6570;&#x63A5;&#x53D7; &#x201C;&#x6307;&#x5411;void&#x7684;&#x6307;&#x9488;&#x201D;&#xFF08;void
+          *&#xFF09;&#x7C7B;&#x578B;&#x7684;&#x53C2;&#x6570;&#x3002; &#x5206;&#x914D;&#x7ED9; <code>pvParameters</code> &#x7684;&#x503C;&#x5C06;&#x662F;&#x4F20;&#x9012;&#x7ED9;&#x4EFB;&#x52A1;&#x7684;&#x503C;&#x3002;</p>
+        <p>&#x6B64;&#x53C2;&#x6570;&#x5177;&#x6709; &#x201C;&#x6307;&#x5411;void&#x7684;&#x6307;&#x9488;&#x201D;
+          &#x7C7B;&#x578B;&#xFF0C;&#x4EE5;&#x5141;&#x8BB8;&#x4EFB;&#x52A1;&#x53C2;&#x6570;&#x6709;&#x6548;&#x5730;&#xFF0C;&#x5E76;&#x901A;&#x8FC7;&#x5F3A;&#x5236;&#x8F6C;&#x6362;&#xFF0C;&#x95F4;&#x63A5;&#x63A5;&#x6536;&#x4EFB;&#x4F55;&#x7C7B;&#x578B;&#x7684;&#x53C2;&#x6570;&#x3002;
+          &#x4F8B;&#x5982;&#xFF0C;&#x901A;&#x8FC7;&#x5728;&#x521B;&#x5EFA;&#x4EFB;&#x52A1;&#x7684;&#x70B9;&#x5904;&#x5C06;&#x6574;&#x6570;&#x8F6C;&#x6362;&#x4E3A;
+          void &#x6307;&#x9488;&#xFF0C;&#x7136;&#x540E;&#x901A;&#x8FC7;&#x5C06; void
+          &#x6307;&#x9488;&#x53C2;&#x6570;&#x8F6C;&#x6362;&#x56DE;&#x4EFB;&#x52A1;&#x51FD;&#x6570;&#x5B9A;&#x4E49;&#x672C;&#x8EAB;&#x4E2D;&#x7684;&#x6574;&#x6570;&#xFF0C;&#x53EF;&#x4EE5;&#x5C06;&#x6574;&#x6570;&#x7C7B;&#x578B;&#x4F20;&#x9012;&#x5230;&#x4EFB;&#x52A1;&#x51FD;&#x6570;&#x3002;</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="text-align:left">uxPriority</td>
+      <td style="text-align:left">
+        <p>&#x5B9A;&#x4E49;&#x4EFB;&#x52A1;&#x5C06;&#x6267;&#x884C;&#x7684;&#x4F18;&#x5148;&#x7EA7;&#x3002;
+          &#x53EF;&#x4EE5;&#x5C06;&#x4F18;&#x5148;&#x7EA7;&#x4ECE; 0&#xFF08;&#x6700;&#x4F4E;&#x4F18;&#x5148;&#x7EA7;&#xFF09;&#x5206;&#x914D;&#x7ED9;&#xFF08;<code>configMAX_PRIORITIES - 1</code>&#xFF09;&#xFF0C;&#x8FD9;&#x662F;&#x6700;&#x9AD8;&#x4F18;&#x5148;&#x7EA7;&#x3002;</p>
+        <p><code>configMAX_PRIORITIES</code> &#x662F;&#x7528;&#x6237;&#x5B9A;&#x4E49;&#x7684;&#x5E38;&#x91CF;&#x3002;
+          &#x5982;&#x679C;<code>configUSE_PORT_OPTIMISED_TASK_SELECTION</code> &#x8BBE;&#x7F6E;&#x4E3A;
+          0&#xFF0C;&#x90A3;&#x4E48;&#x53EF;&#x7528;&#x7684;&#x4F18;&#x5148;&#x7EA7;&#x6570;&#x6CA1;&#x6709;&#x4E0A;&#x9650;&#xFF08;&#x9664;&#x4E86;&#x4F7F;&#x7528;&#x7684;&#x6570;&#x636E;&#x7C7B;&#x578B;&#x7684;&#x9650;&#x5236;&#x548C;&#x5FAE;&#x63A7;&#x5236;&#x5668;&#x4E2D;&#x53EF;&#x7528;&#x7684;
+          RAM&#xFF09;&#xFF0C;&#x4F46;&#x5EFA;&#x8BAE;&#x4F7F;&#x7528;&#x6240;&#x9700;&#x7684;&#x6700;&#x4F4E;&#x4F18;&#x5148;&#x7EA7;&#x6570;
+          &#xFF0C;&#x4EE5;&#x907F;&#x514D;&#x6D6A;&#x8D39; RAM&#x3002;</p>
+        <p>&#x4F20;&#x9012;&#x4E0A;&#x9762;&#x7684; <code>uxPriority</code> &#x503C;&#xFF08;<code>configMAX_PRIORITIES - 1</code>&#xFF09;&#x5C06;&#x5BFC;&#x81F4;&#x5206;&#x914D;&#x7ED9;&#x4EFB;&#x52A1;&#x7684;&#x4F18;&#x5148;&#x7EA7;&#x88AB;&#x9650;&#x5236;&#x4E3A;&#x6700;&#x5927;&#x5408;&#x6CD5;&#x503C;&#x3002;</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="text-align:left">pxCreatedTask</td>
+      <td style="text-align:left"><code>pxCreatedTask</code> &#x53EF;&#x7528;&#x4E8E;&#x4F20;&#x9012;&#x6B63;&#x5728;&#x521B;&#x5EFA;&#x7684;&#x4EFB;&#x52A1;&#x7684;&#x53E5;&#x67C4;&#x3002;
+        &#x7136;&#x540E;&#xFF0C;&#x6B64;&#x53E5;&#x67C4;&#x53EF;&#x7528;&#x4E8E;&#x5F15;&#x7528;
+        API &#x8C03;&#x7528;&#x4E2D;&#x7684;&#x4EFB;&#x52A1;&#xFF0C;&#x4F8B;&#x5982;&#xFF0C;&#x66F4;&#x6539;&#x4EFB;&#x52A1;&#x4F18;&#x5148;&#x7EA7;&#x6216;&#x5220;&#x9664;&#x4EFB;&#x52A1;&#x3002;&#x5982;&#x679C;&#x60A8;&#x7684;&#x5E94;&#x7528;&#x7A0B;&#x5E8F;&#x6CA1;&#x6709;&#x4F7F;&#x7528;&#x4EFB;&#x52A1;&#x53E5;&#x67C4;&#xFF0C;&#x90A3;&#x4E48; <code>pxCreatedTask</code> &#x53EF;&#x4EE5;&#x8BBE;&#x7F6E;&#x4E3A; <code>NULL</code>&#x3002;</td>
+    </tr>
+  </tbody>
+</table>### 返回值
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align:left">&#x8FD4;&#x56DE;&#x503C;</th>
+      <th style="text-align:left">&#x63CF;&#x8FF0;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align:left">pdPASS</td>
+      <td style="text-align:left">&#x8868;&#x793A;&#x5DF2;&#x6210;&#x529F;&#x521B;&#x5EFA;&#x4EFB;&#x52A1;&#x3002;</td>
+    </tr>
+    <tr>
+      <td style="text-align:left">errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY</td>
+      <td style="text-align:left">
+        <p>&#x8868;&#x793A;&#x65E0;&#x6CD5;&#x521B;&#x5EFA;&#x4EFB;&#x52A1;&#xFF0C;&#x56E0;&#x4E3A;
+          FreeRTOS &#x6CA1;&#x6709;&#x8DB3;&#x591F;&#x7684;&#x5806;&#x5185;&#x5B58;&#x6765;&#x5206;&#x914D;&#x4EFB;&#x52A1;&#x6570;&#x636E;&#x7ED3;&#x6784;&#x548C;&#x5806;&#x6808;&#x3002;</p>
+        <p>&#x5982;&#x679C;&#x9879;&#x76EE;&#x4E2D;&#x5305;&#x542B; <code>heap_1.c</code>&#xFF0C;<code>heap_2.c</code> &#x6216; <code>heap_4.c</code> &#xFF0C;&#x90A3;&#x4E48;&#x53EF;&#x7528;&#x5806;&#x7684;&#x603B;&#x91CF;&#x7531; <code>FreeRTOSConfig.h</code> &#x4E2D;&#x7684; <code>configTOTAL_HEAP_SIZE</code> &#x5B9A;&#x4E49;&#xFF0C;&#x5E76;&#x4E14;&#x4F7F;&#x7528;&#x53EF;&#x6355;&#x83B7;&#x5185;&#x5B58;&#x5206;&#x914D;&#x5931;&#x8D25;&#x7684; <code>vApplicationMallocFailedHook()</code> &#x56DE;&#x8C03;&#xFF08;&#x6216; <code>hook</code>&#xFF09;&#x51FD;&#x6570;&#xFF0C;&#x53EF;&#x4EE5;&#x4F7F;&#x7528; <code>xPortGetFreeHeapSize()</code> API
+          &#x51FD;&#x6570;&#x67E5;&#x8BE2;&#x5269;&#x4F59;&#x7684;&#x53EF;&#x7528;&#x5806;&#x5185;&#x5B58;&#x91CF;&#x3002;</p>
+        <p>&#x5982;&#x679C; <code>heap_3.c</code> &#x5305;&#x542B;&#x5728;&#x9879;&#x76EE;&#x4E2D;&#xFF0C;&#x5219;&#x603B;&#x5806;&#x5927;&#x5C0F;&#x7531;&#x94FE;&#x63A5;&#x5668;&#x914D;&#x7F6E;&#x5B9A;&#x4E49;&#x3002;</p>
+      </td>
+    </tr>
+  </tbody>
+</table>### 注意
+
+在 `FreeRTOSConfig.h` 中，`configSUPPORT_DYNAMIC_ALLOCATION` 必须设置为 1，或者就设置成简单的未定义，以使此函数可用。
+

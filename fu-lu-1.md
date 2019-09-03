@@ -18,11 +18,11 @@
     <tr>
       <td style="text-align:left">TickType_t</td>
       <td style="text-align:left">
-        <p>&#x8FD9;&#x7528;&#x4E8E;&#x5B58;&#x50A8; tick &#x8BA1;&#x6570;&#x503C;&#xFF0C;&#x4EE5;&#x53CA;&#x7528;&#x4E8E;&#x6307;&#x5B9A;&#x5757;&#x65F6;&#x95F4;&#x7684;&#x53D8;&#x91CF;&#x3002;</p>
+        <p>&#x8FD9;&#x7528;&#x4E8E;&#x5B58;&#x50A8; tick &#x8BA1;&#x6570;&#x503C;&#xFF0C;&#x4EE5;&#x53CA;&#x7528;&#x4E8E;&#x6307;&#x5B9A;&#x963B;&#x585E;&#x65F6;&#x95F4;&#x7684;&#x53D8;&#x91CF;&#x3002;</p>
         <p><code>TickType_t</code>&#x53EF;&#x4EE5;&#x662F;&#x65E0;&#x7B26;&#x53F7;
           16 &#x4F4D;&#x7C7B;&#x578B;&#x6216;&#x65E0;&#x7B26;&#x53F7; 32 &#x4F4D;&#x7C7B;&#x578B;&#xFF0C;&#x5177;&#x4F53;&#x53D6;&#x51B3;&#x4E8E;<code>FreeRTOSConfig.h</code> &#x4E2D; <code>configUSE_16_BIT_TICKS</code> &#x7684;&#x8BBE;&#x7F6E;&#x3002;</p>
         <p>&#x4F7F;&#x7528; 16 &#x4F4D;&#x7C7B;&#x578B;&#x53EF;&#x4EE5;&#x6781;&#x5927;&#x5730;&#x63D0;&#x9AD8;
-          8 &#x4F4D;&#x548C; 16 &#x4F4D;&#x67B6;&#x6784;&#x7684;&#x6548;&#x7387;&#xFF0C;&#x4F46;&#x4E25;&#x91CD;&#x9650;&#x5236;&#x4E86;&#x53EF;&#x4EE5;&#x6307;&#x5B9A;&#x7684;&#x6700;&#x5927;&#x5757;&#x5468;&#x671F;&#x3002;
+          8 &#x4F4D;&#x548C; 16 &#x4F4D;&#x67B6;&#x6784;&#x7684;&#x6548;&#x7387;&#xFF0C;&#x4F46;&#x4E25;&#x91CD;&#x9650;&#x5236;&#x4E86;&#x53EF;&#x4EE5;&#x6307;&#x5B9A;&#x7684;&#x6700;&#x5927;&#x963B;&#x585E;&#x5468;&#x671F;&#x3002;
           &#x6CA1;&#x6709;&#x7406;&#x7531;&#x5728; 32 &#x4F4D;&#x67B6;&#x6784;&#x4E0A;&#x4F7F;&#x7528;
           16 &#x4F4D;&#x7C7B;&#x578B;&#x3002;</p>
       </td>
