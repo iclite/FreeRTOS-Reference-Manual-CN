@@ -212,7 +212,7 @@ void vAFunction( TaskHandle_t xTask )
 #include "FreeRTOS.h"
 #include "task.h"
 
-BaseType_txTaskCallApplicationTaskHook( TaskHandle_txTask, void *pvParameters );
+BaseType_t xTaskCallApplicationTaskHook( TaskHandle_t xTask, void *pvParameters );
 ```
 
 清单7. `xTaskCallApplicationTaskHook()` 函数原型
@@ -270,7 +270,7 @@ BaseType_t xAnExampleTaskHookFunction( void *pvParameters );
 ```c
 /* Define a hook (callback) function – using the required prototype as 
 demonstrated by Listing 8*/
-static BaseType_tprvExampleTaskHook( void * pvParameter )
+static BaseType_t prvExampleTaskHook( void * pvParameter )
 {
     /* Perform an action - this could be anything.  In this example the hook
     is used to output debug trace information.  pxCurrentTCB is the handle 
