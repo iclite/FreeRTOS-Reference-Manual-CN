@@ -504,3 +504,75 @@ BaseType_t xTaskCreate( TaskFunction_tpvTaskCode,
 
 在 `FreeRTOSConfig.h` 中，`configSUPPORT_DYNAMIC_ALLOCATION` 必须设置为 1，或者就设置成简单的未定义，以使此函数可用。
 
+### 例子
+
+```c
+/* Define a structure called xStruct and a variable of type xStruct.  These are just used to 
+demonstrate a parameter being passed into a task function. */
+typedef struct A_STRUCT
+{
+    char cStructMember1;
+    char cStructMember2;
+} xStruct;    
+
+/* Define a variable of the type xStruct to pass as the task parameter. */
+xStruct xParameter = { 1, 2 };
+
+/* Define the task that will be created.  Note the name of the function that implements the task 
+is used as the first parameter in the call to xTaskCreate() below. */
+void vTaskCode( void * pvParameters )
+{
+    xStruct *pxParameters;
+    
+    /* Cast the void * parameter back to the required type. */
+    pxParameters = ( xStruct * ) pvParameters;
+    
+    /* The parameter can now be accessed as expected. */
+    if( pxParameters->cStructMember1 != 1 )
+    {
+        /* Etc. */
+    }        
+    
+    /* Enter an infinite loop to perform the task processing. */
+    for( ;; )
+    {
+        /* Task code goes here. */
+    }
+}    
+
+/* Definea function that creates a task.  This could be called either before or after the 
+scheduler has been started. */
+void vAnotherFunction( void )
+{
+    TaskHandle_txHandle;
+    
+    /* Create the task. */
+    if( xTaskCreate( 
+        vTaskCode,            /* Pointer to the function that implements the task. */
+        "Demo task",          /* Text name given to the task. */
+        STACK_SIZE,           /* The size of the stack that should be created for the task.
+                                 This is defined in words, not bytes. */
+        (void*) &xParameter,  /* A reference to xParameters is used as the task parameter.
+                                 This is cast to a void * to prevent compiler warnings. */
+        TASK_PRIORITY,        /* The priority to assign to the newly created task.*/
+        &xHandle              /* The handle to the task being created will be placed in
+                                 xHandle. */
+        ) != pdPASS )
+    {
+        /* The task could not be created as there was insufficient heap memory remaining. 
+        If heap_1.c, heap_2.c or heap_4.c are included in the project then this situation can be 
+        trapped using the vApplicationMallocFailedHook() callback (or ‘hook’) function,and the 
+        amount of FreeRTOS heap memory that remains unallocated can be queried using the 
+        xPortGetFreeHeapSize() API function.*/
+    }
+    else
+    {
+        /* The task was created successfully. The handle can now be used in other API functions,
+        for example to change the priority of the task.*/
+        vTaskPrioritySet( xHandle, 2 );
+    }    
+}
+```
+
+清单 13. `xTaskCreate()` 使用示例
+
